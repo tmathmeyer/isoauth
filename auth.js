@@ -123,6 +123,16 @@ exports.auth = function(settings) {
             iso.extract_data(req, function(data) {
                 client.hexists(settings.dbusers, data.username, function(err, status) {
                     if (status === 0) {
+                        if (!(/^[a-zA-Z0-9]+$/.test(data.username))) {
+                            res.writeHead(400, {"Content-Type":"text/plain"});
+                            res.end("alphanumeric usernames only");
+                        } else if (data.username.length > 20) {
+                            res.writeHead(400, {"Content-Type":"text/plain"});
+                            res.end("username maximum 20 characters");
+                        } else if (data.password.length > 128) {
+                            res.writeHead(400, {"Content-Type":"text/plain"});
+                            res.end("pass maximum 128 characters");
+                        }
                         var userUUID = uuid.v4();
                         client.hset(settings.dbusers, data.username, userUUID, function(){});
                         client.hset(userUUID, 'pwd', data.password, function(){});
