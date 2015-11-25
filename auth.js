@@ -31,20 +31,12 @@ exports.auth = function(settings) {
         cookie = function(userUUID, resp) {
             uid = uuid.v4();
             client.hset(userUUID, "cookie", uid, function(e, s) {
-                var timeout = (new Date).getTime();
-                if (settings.debug) {
-                    console.log("gen cookie @ "+timeout);
-                }
-                timeout += settings.authtimeout;
-                if (settings.debug) {
-                    console.log("cookie exp @ "+timeout);
-                }
                 resp.writeHead(307, {
                     "Content-Type": "text/plain",
                     "Set-Cookie": settings.cookiename+"="+ btoa(JSON.stringify({
                         "cookie": uid,
                         "username": userUUID,
-                        "time": timeout
+                        "time": (new Date).getTime() + settings.authtimeout
                     })) + ";path=/",
                     "Location":settings.authredir
                 });
@@ -58,9 +50,6 @@ exports.auth = function(settings) {
                 try {
                     var obj = JSON.parse(atob(authcookie));
                     if (obj === null) {
-                        if (settings.debug) {
-                            console.log("invalid cookie");
-                        }
                         unauthorized(res);
                     } else {
                         client.hget(obj.username, "cookie", function(e, cookie) {
@@ -68,33 +57,24 @@ exports.auth = function(settings) {
                             if (cookie === obj.cookie && obj.time > ctime) {
                                 cb(obj.username);
                             } else {
-                                if (settings.debug) {
-                                    console.log("userid: "+obj.username);
-                                    console.log("time out:\n\t" + obj.time + "\n\t" + ctime);
-                                    console.log("time out: " + (obj.time > ctime));
-                                    console.log("cookies:\n\t" + obj.cookie + "\n\t" + cookie);
-                                }
                                 unauthorized(res);
                             }
                         });
                     }
                 } catch (err) {
-                    if (settings.debug) {
-                        console.log(err);
-                    }
                     unauthorized(res);
                 }
             } else {
-                if (settings.debug) {
-                    console.log("cookie does not exist");
-                }
                 unauthorized(res);
             }
         }
 
         unauthorized = function(res) {
             setTimeout(function() {
-                res.writeHead(401, {"Content-Type":"text-plain"});
+                resp.writeHead(307, { // could be 401, but I think this is better?
+                    "Content-Type": "text/plain",
+                    "Location":settings.authredir
+                });
                 res.end("unauthorized");
             }, 2000);
         }
@@ -135,7 +115,8 @@ exports.auth = function(settings) {
                         }
                         var userUUID = uuid.v4();
                         client.hset(settings.dbusers, data.username, userUUID, function(){});
-                        client.hset(userUUID, 'pwd', data.password, function(){});
+                        client.hset(userUUID, 'password', data.password, function(){});
+                        client.hset(userUUID, 'username', data.username, function(){});
                         cookie(userUUID, res);
                     } else {
                         res.writeHead(409, {"Content-Type":"text/plain"});
@@ -160,7 +141,7 @@ exports.auth = function(settings) {
                                 res.end("Maximum login time exceded");
                             } else {
                                 client.hget(settings.dbusers, data.username, function(err, uuid) {
-                                    client.hget(uuid, 'pwd', function(err, pwd) {
+                                    client.hget(uuid, 'password', function(err, pwd) {
                                         pwd = salt + pwd;
                                         comp = hash.hash(pwd);
                                         if (comp === data.password) {
