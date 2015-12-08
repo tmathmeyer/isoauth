@@ -10,11 +10,8 @@ exports.auth = function(settings) {
         console.log("isotope-auth requires redis for the moment");
         return function(){};
     }
-    if (!settings.landingpage
-     || !settings.landing
-     || !settings.register
-     || !settings.authredir
-     || !settings.login) {
+    if (!settings.register
+     || !settings.authredir) {
         console.log("incomplete settings");
         return function(){};
     }
