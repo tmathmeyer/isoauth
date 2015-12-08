@@ -68,7 +68,7 @@ exports.auth = function(settings) {
 
         unauthorized = function(res) {
             setTimeout(function() {
-                resp.writeHead(307, { // could be 401, but I think this is better?
+                res.writeHead(307, { // could be 401, but I think this is better?
                     "Content-Type": "text/plain",
                     "Location":settings.authredir
                 });
@@ -117,15 +117,16 @@ exports.auth = function(settings) {
                         client.hget(settings.dbusers, data.username, function(err, uuid) {
                             client.hget(uuid, 'password', function(err, pass) {
                                 client.hget(uuid, 'passalt', function(err, salt) {
-                                var hpass = hash.hash(salt+data.password);
-                                if (hpass === pass) {
-                                    cookie(uuid, res);
-                                } else {
-                                    setTimeout(function() {
-                                        res.writeHead(401, {"Content-Type":"text/plain"});
-                                        res.end("invalid username or password");
-                                    }, 2000);
-                                }
+                                    var hpass = hash.hash(salt+data.password);
+                                    if (hpass === pass) {
+                                        cookie(uuid, res);
+                                    } else {
+                                        setTimeout(function() {
+                                            res.writeHead(401, {"Content-Type":"text/plain"});
+                                            res.end("invalid username or password");
+                                        }, 2000);
+                                    }
+                                });
                             });
                         });
                     }
