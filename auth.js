@@ -68,9 +68,8 @@ exports.auth = function(settings) {
 
         unauthorized = function(res) {
             setTimeout(function() {
-                res.writeHead(307, { // could be 401, but I think this is better?
+                res.writeHead(401, { // could be 401, but I think this is better?
                     "Content-Type": "text/plain",
-                    "Location":settings.authredir
                 });
                 res.end("unauthorized");
             }, 2000);
@@ -91,9 +90,11 @@ exports.auth = function(settings) {
                             res.end("pass maximum 128 characters");
                         } else {
                             var userUUID = uuid.v4();
+                            var salt = uuid.v4();
+                            var pwd = hash.hash(salt+data.username);
                             client.hset(settings.dbusers, data.username, userUUID, function(){});
-                            client.hset(userUUID, 'password', data.password, function(){});
-                            client.hset(userUUID, 'passalt', uuid.v4(), function(){});
+                            client.hset(userUUID, 'password', pwd, function(){});
+                            client.hset(userUUID, 'passalt', salt, function(){});
                             client.hset(userUUID, 'username', data.username, function(){});
                             cookie(userUUID, res);
                         }
