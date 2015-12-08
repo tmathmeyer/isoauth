@@ -91,7 +91,7 @@ exports.auth = function(settings) {
                         } else {
                             var userUUID = uuid.v4();
                             var salt = uuid.v4();
-                            var pwd = hash.hash(salt+data.username);
+                            var pwd = hash.hash(salt+data.password);
                             client.hset(settings.dbusers, data.username, userUUID, function(){});
                             client.hset(userUUID, 'password', pwd, function(){});
                             client.hset(userUUID, 'passalt', salt, function(){});
@@ -122,6 +122,8 @@ exports.auth = function(settings) {
                                     if (hpass === pass) {
                                         cookie(uuid, res);
                                     } else {
+                                        console.log(hpass);
+                                        console.log(pass);
                                         setTimeout(function() {
                                             res.writeHead(401, {"Content-Type":"text/plain"});
                                             res.end("invalid username or password");
